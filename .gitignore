@@ -1,6 +1,8 @@
 __pycache__/
 *.py[cod]
 .env
+.env.*
+!.env.example
 *.log
 *.tmp
 *.zip
@@ -26,6 +28,17 @@ engine/
 *.gguf
 *.bin
 *.onnx
+
+# Credentials and private signing material
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+credentials.json
+secrets/
+private/
 
 # Keep the macOS packaging recipe committed.
 !VYNEX_macos.spec
