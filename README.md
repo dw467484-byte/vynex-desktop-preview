@@ -97,4 +97,4 @@ VYNEX est un logiciel propriétaire, tous droits réservés, sous réserve des d
 
 ---
 
-**VYNEX — Technical Preview 0.1.0-preview.4**
+**VYNEX — Technical Preview 0.1.0-preview.5**
