@@ -1,0 +1,33 @@
+name: "💡 Proposer une amélioration"
+description: "Suggérer une amélioration pour une prochaine préversion de VYNEX."
+title: "[IDÉE] "
+labels: ["enhancement", "feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de contribuer à l'amélioration de VYNEX.
+        Les propositions sont étudiées, mais leur réalisation n'est pas garantie. VYNEX est un logiciel propriétaire : ce formulaire sert à recueillir des retours et non à accorder une autorisation de réutilisation du code.
+        Ne publie aucune information personnelle ou confidentielle.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Quel besoin souhaites-tu résoudre ?
+      description: "Explique la difficulté ou le besoin rencontré."
+      placeholder: "Lorsque j'utilise VYNEX, ..."
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Amélioration proposée
+      description: "Décris l'amélioration que tu aimerais voir."
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexte ou exemple d'utilisation (facultatif)
+      description: "Ajoute un exemple non confidentiel qui aiderait à comprendre la proposition."
+    validations:
+      required: false
