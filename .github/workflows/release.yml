@@ -191,4 +191,5 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" release-assets/* \
             --title "VYNEX $GITHUB_REF_NAME" \
-            --notes-file RELEASE_NOTES.md
+            --notes-file RELEASE_NOTES.md \
+            --prerelease
