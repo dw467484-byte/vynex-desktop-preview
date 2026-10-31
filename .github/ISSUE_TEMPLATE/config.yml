@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: "Téléchargements et notes de version"
+    url: https://github.com/dw467484-byte/vynex-desktop-preview/releases
+    about: "Consulter les préversions et leurs notes avant de signaler un problème."
+  - name: "Guide de configuration des moteurs IA"
+    url: https://github.com/dw467484-byte/vynex-desktop-preview/blob/main/RUNTIME_SETUP.md
+    about: "Consulter les étapes d'installation d'Ollama, de l'analyse d'images et des services optionnels."
