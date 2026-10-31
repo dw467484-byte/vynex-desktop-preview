@@ -55,17 +55,29 @@ jobs:
           .venv/bin/python -m pip install --upgrade pip
           .venv/bin/python -m pip install -r requirements-build.txt
 
-      - name: Install a Tk-enabled Python on macOS
+      - name: Select a Tk-enabled Python on macOS
         if: runner.os == 'macOS'
         shell: bash
         run: |
-          brew install python@3.12 python-tk@3.12
-          "$(brew --prefix python@3.12)/bin/python3.12" -m venv --system-site-packages .venv-macos
-          .venv-macos/bin/python -c 'import tkinter; print("Tkinter", tkinter.TkVersion)'
+          set -euo pipefail
+          if command -v python3.12 >/dev/null 2>&1 && python3.12 -c 'import tkinter' >/dev/null 2>&1; then
+            BASE_PYTHON="$(command -v python3.12)"
+            echo "Using the preinstalled Python 3.12 with Tkinter: $BASE_PYTHON"
+          elif command -v python3 >/dev/null 2>&1 && python3 -c 'import tkinter' >/dev/null 2>&1; then
+            BASE_PYTHON="$(command -v python3)"
+            echo "Using the preinstalled Python with Tkinter: $BASE_PYTHON"
+          else
+            echo "No preinstalled Python with Tkinter; installing the Homebrew Python/Tk pair."
+            brew install python@3.12 python-tk@3.12
+            BASE_PYTHON="$(brew --prefix python@3.12)/bin/python3.12"
+          fi
+          "$BASE_PYTHON" -c 'import tkinter; print("Tkinter", tkinter.TkVersion)'
+          "$BASE_PYTHON" -m venv --system-site-packages .venv-macos
+          .venv-macos/bin/python -c 'import tkinter; print("Virtualenv Tkinter", tkinter.TkVersion)'
 
       - name: Install build dependencies (Windows)
         if: runner.os == 'Windows'
-        shell: bash
+        shell: pwsh
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements-build.txt
@@ -86,7 +98,7 @@ jobs:
 
       - name: Validate source and tests (Windows)
         if: runner.os == 'Windows'
-        shell: bash
+        shell: pwsh
         run: |
           python -m py_compile VYNEX.py
           python -m unittest discover -s tests -v
@@ -102,7 +114,9 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          python -m PyInstaller --noconfirm --clean --onedir --windowed --name VYNEX --icon assets/VYNEX.ico --add-data "assets;assets" --distpath dist --workpath build --specpath spec VYNEX.py
+          if (-not (Test-Path 'assets/VYNEX.ico')) { throw 'Windows icon is missing: assets/VYNEX.ico' }
+          if (-not (Test-Path 'assets/VYNEX_icon.png')) { throw 'Robot PNG is missing: assets/VYNEX_icon.png' }
+          python -m PyInstaller --noconfirm --clean --onedir --windowed --name VYNEX --icon assets/VYNEX.ico --add-data "assets;assets" --distpath dist --workpath build VYNEX.py
           if (-not (Test-Path 'dist/VYNEX/VYNEX.exe')) { throw 'VYNEX.exe was not created.' }
           Compress-Archive -Path 'dist/VYNEX' -DestinationPath 'VYNEX-windows-x64.zip' -Force
 
@@ -110,7 +124,10 @@ jobs:
         if: runner.os == 'macOS'
         shell: bash
         run: |
-          .venv-macos/bin/python -m PyInstaller --noconfirm --clean --distpath dist --workpath build --specpath spec VYNEX_macos.spec
+          test -f assets/VYNEX.icns
+          test -f assets/VYNEX_icon.png
+          test -f assets/VYNEX_splash.png
+          .venv-macos/bin/python -m PyInstaller --noconfirm --clean --distpath dist --workpath build VYNEX_macos.spec
           test -d dist/VYNEX.app
           /usr/libexec/PlistBuddy -c 'Print :NSMicrophoneUsageDescription' dist/VYNEX.app/Contents/Info.plist >/dev/null
           /usr/libexec/PlistBuddy -c 'Print :NSScreenCaptureUsageDescription' dist/VYNEX.app/Contents/Info.plist >/dev/null
@@ -120,7 +137,8 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          .venv/bin/python -m PyInstaller --noconfirm --clean --onedir --windowed --name VYNEX --add-data "assets:assets" --distpath dist --workpath build --specpath spec VYNEX.py
+          test -f assets/VYNEX_icon.png
+          .venv/bin/python -m PyInstaller --noconfirm --clean --onedir --windowed --name VYNEX --add-data "assets:assets" --distpath dist --workpath build VYNEX.py
           test -x dist/VYNEX/VYNEX
           cp install-linux.sh dist/VYNEX/install-linux.sh
           cp uninstall-linux.sh dist/VYNEX/uninstall-linux.sh
@@ -158,6 +176,7 @@ jobs:
       - name: Verify release assets
         shell: bash
         run: |
+          set -euo pipefail
           ls -lh release-assets
           test -f release-assets/VYNEX-windows-x64.zip
           test -f release-assets/VYNEX-linux-x64.tar.gz
