@@ -1,0 +1,175 @@
+name: Build and publish VYNEX desktop preview
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2022
+            target: windows-x64
+            artifact_name: VYNEX-package-windows-x64
+          - os: ubuntu-24.04
+            target: linux-x64
+            artifact_name: VYNEX-package-linux-x64
+          - os: macos-15
+            target: macos-arm64
+            artifact_name: VYNEX-package-macos-arm64
+          - os: macos-15-intel
+            target: macos-intel
+            artifact_name: VYNEX-package-macos-intel
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+
+      - name: Install Linux Tkinter build prerequisites
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-tk python3-venv python3-pip
+          python3 -m venv --system-site-packages .venv
+
+      - name: Setup Python on Windows
+        if: runner.os == 'Windows'
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Install build dependencies (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          .venv/bin/python -m pip install --upgrade pip
+          .venv/bin/python -m pip install -r requirements-build.txt
+
+      - name: Install a Tk-enabled Python on macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          brew install python@3.12 python-tk@3.12
+          "$(brew --prefix python@3.12)/bin/python3.12" -m venv --system-site-packages .venv-macos
+          .venv-macos/bin/python -c 'import tkinter; print("Tkinter", tkinter.TkVersion)'
+
+      - name: Install build dependencies (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-build.txt
+
+      - name: Install build dependencies (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          .venv-macos/bin/python -m pip install --upgrade pip
+          .venv-macos/bin/python -m pip install -r requirements-build.txt
+
+      - name: Validate source and tests (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          .venv/bin/python -m py_compile VYNEX.py
+          .venv/bin/python -m unittest discover -s tests -v
+
+      - name: Validate source and tests (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          python -m py_compile VYNEX.py
+          python -m unittest discover -s tests -v
+
+      - name: Validate source and tests (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          .venv-macos/bin/python -m py_compile VYNEX.py
+          .venv-macos/bin/python -m unittest discover -s tests -v
+
+      - name: Build Windows package
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean --onedir --windowed --name VYNEX --icon assets/VYNEX.ico --add-data "assets;assets" --distpath dist --workpath build --specpath spec VYNEX.py
+          if (-not (Test-Path 'dist/VYNEX/VYNEX.exe')) { throw 'VYNEX.exe was not created.' }
+          Compress-Archive -Path 'dist/VYNEX' -DestinationPath 'VYNEX-windows-x64.zip' -Force
+
+      - name: Build macOS app bundle
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          .venv-macos/bin/python -m PyInstaller --noconfirm --clean --distpath dist --workpath build --specpath spec VYNEX_macos.spec
+          test -d dist/VYNEX.app
+          /usr/libexec/PlistBuddy -c 'Print :NSMicrophoneUsageDescription' dist/VYNEX.app/Contents/Info.plist >/dev/null
+          /usr/libexec/PlistBuddy -c 'Print :NSScreenCaptureUsageDescription' dist/VYNEX.app/Contents/Info.plist >/dev/null
+          ditto -c -k --sequesterRsrc --keepParent dist/VYNEX.app "VYNEX-${{ matrix.target }}.zip"
+
+      - name: Build Linux package
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          .venv/bin/python -m PyInstaller --noconfirm --clean --onedir --windowed --name VYNEX --add-data "assets:assets" --distpath dist --workpath build --specpath spec VYNEX.py
+          test -x dist/VYNEX/VYNEX
+          cp install-linux.sh dist/VYNEX/install-linux.sh
+          cp uninstall-linux.sh dist/VYNEX/uninstall-linux.sh
+          chmod +x dist/VYNEX/VYNEX dist/VYNEX/install-linux.sh dist/VYNEX/uninstall-linux.sh
+          tar -czf VYNEX-linux-x64.tar.gz -C dist VYNEX
+
+      - name: Upload platform package
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: |
+            VYNEX-*.zip
+            VYNEX-*.tar.gz
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout release notes
+        uses: actions/checkout@v7
+
+      - name: Download all platform packages
+        uses: actions/download-artifact@v8
+        with:
+          pattern: VYNEX-package-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Verify release assets
+        shell: bash
+        run: |
+          ls -lh release-assets
+          test -f release-assets/VYNEX-windows-x64.zip
+          test -f release-assets/VYNEX-linux-x64.tar.gz
+          test -f release-assets/VYNEX-macos-arm64.zip
+          test -f release-assets/VYNEX-macos-intel.zip
+          (cd release-assets && sha256sum VYNEX-windows-x64.zip VYNEX-linux-x64.tar.gz VYNEX-macos-arm64.zip VYNEX-macos-intel.zip > SHA256SUMS.txt)
+
+      - name: Create public release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release create "$GITHUB_REF_NAME" release-assets/* \
+            --title "VYNEX $GITHUB_REF_NAME" \
+            --notes-file RELEASE_NOTES.md
