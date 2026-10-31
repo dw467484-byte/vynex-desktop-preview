@@ -47,7 +47,7 @@ Les sommes de contrôle SHA-256 sont publiées avec chaque version lorsqu'elles 
 
 ### Installation sous Windows
 
-1. Télécharge `VYNEX-windows-x64.zip) depuis la page Releases.
+1. Télécharge `VYNEX-windows-x64.zip` depuis la page Releases.
 2. Extrais toute l'archive dans un dossier.
 3. Ouvre le dossier `VYNEX` extrait.
 4. Lance `VYNEX.exe`.
