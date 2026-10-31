@@ -1,0 +1,64 @@
+name: "🐛 Signaler un bug"
+description: "Décrire un problème rencontré avec une préversion de VYNEX."
+title: "[BUG] "
+labels: ["bug", "feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de prendre le temps de signaler ce problème.
+        **Confidentialité :** ne publie aucune donnée personnelle, adresse e-mail privée, identifiant, clé API, mot de passe, capture d'écran privée ou conversation. Les issues sont publiques.
+  - type: input
+    id: version
+    attributes:
+      label: Version de VYNEX
+      description: "Indique le numéro affiché dans la préversion (par exemple 0.1.0-preview.5)."
+      placeholder: "0.1.0-preview.5"
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Système d'exploitation
+      options:
+        - Windows 10
+        - Windows 11
+        - Linux
+        - macOS Intel
+        - macOS Apple Silicon
+        - Autre / Je ne sais pas
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Description du problème
+      description: "Que s'est-il passé ? Ajoute le message d'erreur exact en retirant toute information privée."
+      placeholder: "Décris le comportement observé..."
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Étapes pour reproduire
+      description: "Décris les actions qui permettent de reproduire le problème."
+      placeholder: |
+        1. Ouvrir VYNEX
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Résultat attendu
+      description: "Qu'aurais-tu dû observer ?"
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Informations supplémentaires (facultatif)
+      description: "Ajoute uniquement des informations techniques non sensibles. N'inclus pas de fichiers de configuration privés."
+    validations:
+      required: false
