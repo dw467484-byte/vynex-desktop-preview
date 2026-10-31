@@ -1,7 +1,6 @@
 name: "💡 Proposer une amélioration"
 description: "Suggérer une amélioration pour une prochaine préversion de VYNEX."
 title: "[IDÉE] "
-labels: ["enhancement", "feedback"]
 body:
   - type: markdown
     attributes:
